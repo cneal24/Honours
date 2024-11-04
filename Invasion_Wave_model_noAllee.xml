@@ -1,0 +1,170 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<MorpheusModel version="4">
+    <Description>
+        <Title>Invasion Wave Model - No Allee</Title>
+        <Details>This model describes the progression of a cancerous invasion wave into healthy tissue, where the cancerous cells replication rate is invariant with local density.  
+
+Domain: 500x500 
+Initial population: 210 Healthy, 210 Cancer
+Cell Constraints: Perimeter and SA 
+Assumptions: Cells are adhesive, Cells smaller than 90% of their natural size cannot replicate. 
+Replication Relation: Constant
+Cell Types: 2 
+
+At each time-step the code will return whether or not each cancer cell is bordering a healthy cell, along with the total populations of the 2 cell types.  </Details>
+    </Description>
+    <Global>
+        <Variable symbol="c" value="0.0"/>
+    </Global>
+    <Space>
+        <Lattice class="hexagonal">
+            <Size symbol="size" value="500, 500, 0"/>
+            <BoundaryConditions>
+                <Condition type="noflux" boundary="x"/>
+                <Condition type="noflux" boundary="y"/>
+            </BoundaryConditions>
+            <Neighborhood>
+                <Order>1</Order>
+            </Neighborhood>
+        </Lattice>
+        <SpaceSymbol symbol="space"/>
+    </Space>
+    <Time>
+        <StartTime value="0"/>
+        <StopTime symbol="stoptime" value="6700"/>
+        <TimeSymbol symbol="time"/>
+    </Time>
+    <CellTypes>
+        <CellType name="healthy_cells" class="biological">
+            <Property symbol="p" name="proliferation rate" value="0.001"/>
+            <Property symbol="D" name="Death rate Healthy" value="0.0005"/>
+            <Property symbol="d" name="divisions" value="0"/>
+            <Property symbol="c" name="color" value="1"/>
+            <VolumeConstraint target="600" strength="1"/>
+            <SurfaceConstraint target="0.9" strength="1" mode="aspherity"/>
+            <CellDivision division-plane="random">
+                <Condition>cell.volume >= 550 and rand_uni(0,1) &lt; p
+</Condition>
+                <Triggers>
+                    <Rule symbol-ref="d">
+                        <Expression>d+1</Expression>
+                    </Rule>
+                    <Rule symbol-ref="c" name="color after division">
+                        <Expression>1</Expression>
+                    </Rule>
+                </Triggers>
+            </CellDivision>
+            <CellDeath>
+                <Condition>rand_uni(0,1) &lt; D</Condition>
+            </CellDeath>
+        </CellType>
+        <CellType name="cancer_cells" class="biological">
+            <Property symbol="p" name="proliferation rate" value="0.002"/>
+            <Property symbol="D" name="Death rate Cancer" value="0.0005"/>
+            <Property symbol="d" name="divisions" value="0"/>
+            <Property symbol="c" name="color" value="2"/>
+            <Property symbol="b" name="Cell border" value="0.0"/>
+            <VolumeConstraint target="600" strength="1"/>
+            <SurfaceConstraint target="0.9" strength="1" mode="aspherity"/>
+            <CellDivision division-plane="random">
+                <Condition>cell.volume >= 550 and rand_uni(0,1) &lt; p</Condition>
+                <Triggers>
+                    <Rule symbol-ref="d">
+                        <Expression>d+1</Expression>
+                    </Rule>
+                    <Rule symbol-ref="c" name="color after division">
+                        <Expression>2
+</Expression>
+                    </Rule>
+                </Triggers>
+            </CellDivision>
+            <CellDeath>
+                <Condition>rand_uni(0,1) &lt; D</Condition>
+            </CellDeath>
+            <NeighborhoodReporter time-step="1">
+                <Input scaling="length" value="cell.type == celltype.healthy_cells.id"/>
+                <Output symbol-ref="b" mapping="sum"/>
+            </NeighborhoodReporter>
+        </CellType>
+    </CellTypes>
+    <CPM>
+        <Interaction default="0">
+            <Contact type2="healthy_cells" type1="healthy_cells" value="-4"/>
+            <Contact type2="cancer_cells" type1="cancer_cells" value="-4"/>
+            <Contact type2="healthy_cells" type1="cancer_cells" value="-4.0"/>
+        </Interaction>
+        <MonteCarloSampler stepper="edgelist">
+            <MCSDuration value="1.0"/>
+            <Neighborhood>
+                <Order>1</Order>
+            </Neighborhood>
+            <MetropolisKinetics yield="0.1" temperature="3"/>
+        </MonteCarloSampler>
+        <ShapeSurface scaling="norm">
+            <Neighborhood>
+                <Order>3</Order>
+            </Neighborhood>
+        </ShapeSurface>
+    </CPM>
+    <CellPopulations>
+        <Population type="healthy_cells" size="1">
+            <InitRectangle mode="regular" number-of-cells="210">
+                <Dimensions origin="0.0, 0.0, 0.0" size="245.0, 500.0, 0.0"/>
+            </InitRectangle>
+        </Population>
+        <Population type="cancer_cells" size="1">
+            <InitRectangle mode="regular" number-of-cells="210">
+                <Dimensions origin="255, 0, 0.0" size="245.0, 500.0, 0.0"/>
+            </InitRectangle>
+        </Population>
+    </CellPopulations>
+    <Analysis>
+        <Gnuplotter time-step="100" decorate="false">
+            <Terminal name="png"/>
+            <Plot>
+                <Cells max="1" min="0.0" value="c">
+                    <ColorMap>
+                        <Color color="green" value="1"/>
+                        <Color color="blue" value="2"/>
+                        <!--    <Disabled>
+        <Color color="red" value="1000"/>
+    </Disabled>
+-->
+                        <Color color="red" value="3"/>
+                    </ColorMap>
+                </Cells>
+                <!--    <Disabled>
+        <CellLabels fontsize="8" value="d"/>
+    </Disabled>
+-->
+            </Plot>
+        </Gnuplotter>
+        <Logger time-step="100">
+            <Input>
+                <Symbol symbol-ref="celltype.cancer_cells.size"/>
+                <Symbol symbol-ref="celltype.healthy_cells.size"/>
+                <Symbol symbol-ref="b"/>
+            </Input>
+            <Output>
+                <TextOutput file-name="automatic" file-format="csv" header="true" file-separation="none" separator="tab" file-numbering="time"/>
+            </Output>
+            <!--    <Disabled>
+        <Plots>
+            <Plot time-step="100" log-commands="true">
+                <Style grid="true" style="linespoints" point-size="0.5"/>
+                <Terminal terminal="png"/>
+                <X-axis minimum="0" maximum="stoptime">
+                    <Symbol symbol-ref="time"/>
+                </X-axis>
+                <Y-axis minimum="0">
+                    <Symbol symbol-ref="celltype.healthy_cells.size"/>
+                    <Symbol symbol-ref="celltype.cancer_cells.size"/>
+                </Y-axis>
+            </Plot>
+        </Plots>
+    </Disabled>
+-->
+        </Logger>
+        <ModelGraph include-tags="#untagged" reduced="false" format="svg"/>
+    </Analysis>
+</MorpheusModel>

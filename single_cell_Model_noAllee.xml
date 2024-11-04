@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<MorpheusModel version="4">
+    <Description>
+        <Details>This model describes the growth of randomly distributed cells within a box, where the replication probability of each cell at each point in time is invariant with its local density. 
+Domain: 2000x2000 
+Initial population: 100 
+Cell Constraints: Perimeter and SA 
+Assumptions: Cells are adhesive, Cells smaller than 90% of their natural size cannot replicate. 
+Replication Relation: Constant</Details>
+        <Title>Single Cell Model - No Allee Effect</Title>
+    </Description>
+    <Space>
+        <SpaceSymbol symbol="space"/>
+        <Lattice class="square">
+            <Neighborhood>
+                <Order>1</Order>
+            </Neighborhood>
+            <Size symbol="size" value="2000.0, 2000.0, 0.0"/>
+            <BoundaryConditions>
+                <Condition type="noflux" boundary="x"/>
+                <Condition type="noflux" boundary="y"/>
+            </BoundaryConditions>
+        </Lattice>
+    </Space>
+    <Time>
+        <StartTime value="0"/>
+        <StopTime value="3500"/>
+        <TimeSymbol symbol="time"/>
+    </Time>
+    <Analysis>
+        <Gnuplotter time-step="100.0" decorate="false">
+            <Terminal name="png"/>
+            <Plot>
+                <Cells value="c">
+                    <ColorMap>
+                        <Color color="green" value="1"/>
+                        <Color color="green" value="2"/>
+                        <Color color="green" value="3"/>
+                        <Color color="green" value="4"/>
+                        <Color color="green" value="5"/>
+                        <Color color="black" value="6"/>
+                        <Color color="black" value="7"/>
+                        <Color color="black" value="8"/>
+                    </ColorMap>
+                </Cells>
+                <!--    <Disabled>
+        <CellLabels fontcolor="black" value="N"/>
+    </Disabled>
+-->
+            </Plot>
+        </Gnuplotter>
+        <Logger time-step="50">
+            <Input>
+                <Symbol symbol-ref="N"/>
+                <!--    <Disabled>
+        <Symbol symbol-ref="r"/>
+    </Disabled>
+-->
+                <Symbol symbol-ref="celltype.Basic_cell.size"/>
+            </Input>
+            <Output>
+                <TextOutput file-name="automatic" file-format="csv" separator="comma"/>
+            </Output>
+            <!--    <Disabled>
+        <Plots>
+            <Plot time-step="100">
+                <Style style="points"/>
+                <Terminal plot-size="10,10,10" terminal="png"/>
+                <X-axis>
+                    <Symbol symbol-ref="time"/>
+                </X-axis>
+                <Y-axis>
+                    <Symbol symbol-ref="celltype.Basic_cell.size"/>
+                </Y-axis>
+            </Plot>
+        </Plots>
+    </Disabled>
+-->
+        </Logger>
+        <ModelGraph include-tags="#untagged" format="svg" reduced="false"/>
+    </Analysis>
+    <CellTypes>
+        <CellType name="Basic_cell" class="biological">
+            <Property symbol="r" name="reproduction rate" value="0.0035"/>
+            <Property symbol="N" name="Neighbour count" value="0"/>
+            <Property symbol="c" name="colour " value="1"/>
+            <VolumeConstraint target="500" strength="1"/>
+            <SurfaceConstraint target="0.9" strength="1" mode="aspherity"/>
+            <Equation symbol-ref="r" name="No Allee Function">
+                <Expression>min(0.0035, 6-N)</Expression>
+            </Equation>
+            <NeighborhoodReporter time-step="1">
+                <Input scaling="cell" value="cell.type == celltype.Basic_cell.id"/>
+                <Output symbol-ref="N" mapping="sum"/>
+            </NeighborhoodReporter>
+            <CellDivision trigger="when-true" division-plane="random">
+                <Condition>cell.volume >= 450 and rand_uni(0,1) &lt; r</Condition>
+            </CellDivision>
+            <Equation symbol-ref="c">
+                <Expression>N</Expression>
+            </Equation>
+        </CellType>
+    </CellTypes>
+    <CPM>
+        <Interaction default="0">
+            <Contact type2="Basic_cell" type1="Basic_cell" value="-4.0"/>
+        </Interaction>
+        <MonteCarloSampler stepper="edgelist">
+            <MCSDuration value="1"/>
+            <MetropolisKinetics yield="0.1" temperature="3"/>
+            <Neighborhood>
+                <Order>1</Order>
+            </Neighborhood>
+        </MonteCarloSampler>
+        <ShapeSurface scaling="norm">
+            <Neighborhood>
+                <Order>3</Order>
+            </Neighborhood>
+        </ShapeSurface>
+    </CPM>
+    <CellPopulations>
+        <Population type="Basic_cell" size="1">
+            <InitDistribute probability="0.1" mode="random" number-of-cells="100"/>
+        </Population>
+    </CellPopulations>
+    <Global>
+        <Variable symbol="c" value="0.0"/>
+        <Variable symbol="V" value="0.0"/>
+    </Global>
+</MorpheusModel>
